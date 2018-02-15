@@ -11,7 +11,7 @@ using System.Timers;
 namespace CacheCrow.Cache
 {
     /// <summary>
-    /// CacheCrow
+    /// Represents A simple LFU based Cache that supports data expiry.
     /// </summary>
     /// <typeparam name="K">Key</typeparam>
     /// <typeparam name="V">Value</typeparam>
@@ -40,7 +40,7 @@ namespace CacheCrow.Cache
         /// <param name="dormantCacheExpire">Milli-seconds before each entry in Dormant(disk) CacheCrow is expired</param>
         /// <param name="cleanerSnoozeTime">Milli-seconds before Cleaner cleans Dormant CacheCrow. Note: Cleaner is called after every cleanersnoozetime milli-seconds</param>
         /// <returns>Returns instance of ICacheCrow</returns>
-        public static ICacheCrow<K, V> Initialize(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 120000)
+        public static ICacheCrow<K, V> Initialize(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 400000)
         {
             if (_cache == null)
             {
@@ -145,7 +145,6 @@ namespace CacheCrow.Cache
             if (_cacheDic.ContainsKey(key))
             {
                 var cacheData = _cacheDic[key];
-                Console.WriteLine("Frequency: " + (cacheData.Frequency));
                 cacheData.Frequency += 1;
                 cacheData.CreationDate = DateTime.Now;
                 _cacheDic[key] = cacheData;
@@ -165,7 +164,6 @@ namespace CacheCrow.Cache
             if (_cacheDic.ContainsKey(key))
             {
                 var cacheData = _cacheDic[key];
-                Console.WriteLine("Frequency: " + (cacheData.Frequency));
                 cacheData.Frequency += 1;
                 cacheData.CreationDate = DateTime.Now;
                 _cacheDic[key] = cacheData;
@@ -232,6 +230,43 @@ namespace CacheCrow.Cache
                 }
             }
             return i;
+        }
+        /// <summary>
+        /// Lookups the key in Active+Dormant CacheCrow, if found then increments the frequency.
+        /// </summary>
+        /// <param name="key">Key to corresponding value</param>
+        /// <returns>If V is reference type and it is present then Object V else if V is value-type and it is not present then default value of V</returns>
+        public V GetValue(K key)
+        {
+            ConcurrentDictionary<K, CacheData<V>> dic;
+            if (ActiveLookUp(key))
+            {
+                return _cacheDic[key].Data;
+            }
+            else if ((dic = ReadBinary()) != null && dic.ContainsKey(key))
+            {
+                var cachedata = dic[key];
+                cachedata.Frequency += 1;
+                dic[key] = cachedata;
+                WriteBinary(dic);
+                PerformLFUAndReplace(key, cachedata);
+                return cachedata.Data;
+            }
+            else
+                return default(V);
+        }
+        /// <summary>
+        /// Lookups the key in Active CacheCrow, if found then increments the frequency. Note: LFU maybe performed and entries maybe swapped between Active and Dormant CacheCrow.
+        /// </summary>
+        /// <param name="key">Key to corresponding value</param>
+        /// <returns>If V is reference type and it is present then Object V else if V is value-type and it is not present then default value of V</returns>
+        public V GetActiveValue(K key)
+        {
+            if (ActiveLookUp(key))
+            {
+                return _cacheDic[key].Data;
+            }
+            else return default(V);
         }
         /// <summary>
         /// Disposes and writes the entries in Active CacheCrow to Dormant CacheCrow.
@@ -505,7 +540,6 @@ namespace CacheCrow.Cache
             if (dic.ContainsKey(item))
             {
                 var cachedata = dic[item];
-                Console.WriteLine("Frequency: " + (cachedata.Frequency));
                 cachedata.Frequency += 1;
                 cachedata.CreationDate = DateTime.Now;
                 dic[item] = cachedata;

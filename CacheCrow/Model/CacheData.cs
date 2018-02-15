@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CacheCrow.Model
 {
@@ -31,7 +27,7 @@ namespace CacheCrow.Model
         /// <param name="data">User data</param>
         public CacheData(V data)
         {
-            this.Data = data;
+            Data = data;
             CreationDate = DateTime.Now;
         }
         /// <summary>
@@ -41,8 +37,8 @@ namespace CacheCrow.Model
         /// <param name="frequency">Frequency</param>
         public CacheData(V data, int frequency)
         {
-            this.Data = data;
-            this.Frequency = frequency;
+            Data = data;
+            Frequency = frequency;
             CreationDate = DateTime.Now;
         }
         /// <summary>

@@ -1,9 +1,5 @@
 ﻿using CacheCrow.Model;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CacheCrow.Cache
 {
@@ -50,7 +46,7 @@ namespace CacheCrow.Cache
         /// <returns>True if key is found in Active CacheCrow, else false</returns>
         bool ActiveLookUp(K key);
         /// <summary>
-        /// Checks if key is present in CacheCrow(Active+Dormant)
+        /// Checks if key is present in CacheCrow(Active+Dormant), Note: LFU maybe performed and entries maybe swapped between Active and Dormant CacheCrow.
         /// </summary>
         /// <param name="key">The key to find</param>
         /// <returns>True if key is found, else false</returns>
@@ -67,6 +63,18 @@ namespace CacheCrow.Cache
         /// <param name="key">The key to corresponding value to remove</param>
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
         CacheData<V> Remove(K key);
+        /// <summary>
+        /// Lookups the key in Active+Dormant CacheCrow, if found then increments the frequency.
+        /// </summary>
+        /// <param name="key">Key to corresponding value</param>
+        /// <returns>If V is reference type and it is present then Object V else if V is value-type and it is not present then default value of V</returns>
+        V GetValue(K key);
+        /// <summary>
+        /// Lookups the key in Active CacheCrow, if found then increments the frequency. Note: LFU maybe performed and entries maybe swapped between Active and Dormant CacheCrow.
+        /// </summary>
+        /// <param name="key">Key to corresponding value</param>
+        /// <returns>If V is reference type and it is present then Object V else if V is value-type and it is not present then default value of V</returns>
+        V GetActiveValue(K key);
         /// <summary>
         /// Raised when CacheCrow is empty.Note: It is also periodically raised by Cleaner when CacheCrow is empty.
         /// </summary>
