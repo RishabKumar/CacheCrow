@@ -26,7 +26,7 @@ Data removal takes place in 3 conditions:
  - Auto swapped when key is searched/value is fetched.
 
 ####  Auto data swapping between Active and Dormant CacheCrow
-When a data entry in dormant cache is looked up for or its value is fetched then LFU is performed, the data entry with least hits/frequency in active cache is compared with data entry with most hits in dormant cache. If the former has less hits then the two entries are swapped between active and dormant cache. Auto data swapping also works while adding data entries to active cache, however for new entries it works as stated above in section [Add Remove data](#Add-Remove-data).
+When a data entry in dormant cache is looked up for or its value is fetched then LFU is performed, the data entry with least hits/frequency in active cache is compared with data entry with most hits in dormant cache. If the former has less hits then the two entries are swapped between active and dormant cache. Auto data swapping also works while adding data entries to active cache, however for new entries it works as stated above in section [Add Remove data](#add-remove-data).
 
 #### Why there are two layers in CacheCrow ?
 Internally CacheCrow relies on Dictionary<> and it takes a down hit in performance when the size increases. To maintain its performance 2 different caches have been deployed, one with a fixed size(Active) having frequently used data and the other with a variable size. 
