@@ -84,7 +84,7 @@ namespace CacheCrow.Cache
             _cleaner.Stop();
             _cleaner.Start();
             WriteCache();
-            EmptyCacheEvent(this, new EventArgs());
+            EmptyCacheEvent?.Invoke(this, new EventArgs());
         }
         /// <summary>
         /// Inputs entry in Active CacheCrow if its size is not exceeded else adds the entry in Dormant CacheCrow.
@@ -191,7 +191,7 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (_dormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                 {
                     EmptyCacheEvent(this, new EventArgs());
                 }
@@ -216,7 +216,7 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (_dormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                 {
                     EmptyCacheEvent(this, new EventArgs());
                 }
@@ -557,7 +557,7 @@ namespace CacheCrow.Cache
             System.Threading.Thread cleaner = new System.Threading.Thread(() => {
                 var dic = ReadBinary();
                 WriteBinary(dic);
-                if (_dormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                 {
                     EmptyCacheEvent(this, new EventArgs());
                 }
@@ -572,7 +572,7 @@ namespace CacheCrow.Cache
                 cachetimer.Elapsed -= new ElapsedEventHandler(Elapsed_Event);
                 cachetimer.Close();
                 _cacheDic.TryRemove(cachetimer.key, out i);
-                if (_dormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                 {
                     EmptyCacheEvent(this, new EventArgs());
                 }
