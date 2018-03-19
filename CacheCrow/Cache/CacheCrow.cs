@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.AccessControl;
 using System.Timers;
+using System.Web;
 
 namespace CacheCrow.Cache
 {
@@ -24,8 +25,8 @@ namespace CacheCrow.Cache
         private readonly int _cacheSize;
         private readonly int _activeCacheExpire;
         private readonly int _dormantCacheExpire;
-        private readonly string _cachePath = Path.GetFullPath(@"..\..\_crow\CacheCrow");
-        private readonly string _cacheDirectoryPath = Path.GetFullPath(@"..\..\_crow");
+        private readonly string _cachePath;// = Path.GetFullPath(@"..\..\_crow\CacheCrow");
+        private readonly string _cacheDirectoryPath;// = Path.GetFullPath(@"..\..\_crow");
         private static ConcurrentDictionary<K, CacheData<V>> _cacheDic;
         private static ConcurrentDictionary<K, Timer> _timerDic;
         private static CacheCrow<K, V> _cache;
@@ -76,7 +77,7 @@ namespace CacheCrow.Cache
         }
         /// <summary>
         /// Removes all entries from CacheCrow, including entries in dormant cache and raises EmptyCacheEvent.
-        /// </summary>
+        /// </summary> 
         public void Clear()
         {
             _cacheDic.Clear();
@@ -93,6 +94,10 @@ namespace CacheCrow.Cache
         /// <param name="data">Value</param>
         public void Add(K key, V data)
         {
+            if(!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             if (data != null)
             {
                 Add(key, data, 1);
@@ -106,6 +111,10 @@ namespace CacheCrow.Cache
         /// <returns>True if value was updated else false</returns>
         public bool Update(K key, V data)
         {
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             if (data != null)
             {
                 if (_cacheDic.ContainsKey(key))
@@ -205,6 +214,10 @@ namespace CacheCrow.Cache
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
         public CacheData<V> Remove(K key)
         {
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             CacheData<V> i = new CacheData<V>();
             if (_cacheDic.ContainsKey(key) && (_timerDic.ContainsKey(key)))
             {
@@ -330,15 +343,33 @@ namespace CacheCrow.Cache
         }
         private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 120000) : base()
         {
-            Directory.CreateDirectory(_cacheDirectoryPath);
-            var ds = new DirectorySecurity(_cacheDirectoryPath, AccessControlSections.Access);
-            Directory.SetAccessControl(_cacheDirectoryPath, ds);
+            string appdirectory = string.Empty;
+            if (HttpRuntime.AppDomainAppId != null)
+            {
+                appdirectory = HttpRuntime.AppDomainAppPath;
+            }
+            else
+            {
+                appdirectory = Path.GetFullPath(@"..\..\_crow");
+            }
+            _cacheDirectoryPath = appdirectory + "_crow";
+            _cachePath = _cacheDirectoryPath + @"\CacheCrow";
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             _cacheSize = size;
             _dormantCacheExpire = dormantCacheExpire;
             _activeCacheExpire = activeCacheExpire;
             _dormantCacheCount = -1;
             _cleaner = new Timer(cleanerSnoozeTime);
             _cleaner.Elapsed += new ElapsedEventHandler(Cleaner_Event);
+        }
+        private void CreateCacheDirectory()
+        {
+            Directory.CreateDirectory(_cacheDirectoryPath);
+            var ds = new DirectorySecurity(_cacheDirectoryPath, AccessControlSections.Access);
+            Directory.SetAccessControl(_cacheDirectoryPath, ds);
         }
         private void WriteBinary(K item, CacheData<V> value)
         {
