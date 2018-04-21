@@ -25,8 +25,8 @@ namespace CacheCrow.Cache
         private readonly int _cacheSize;
         private readonly int _activeCacheExpire;
         private readonly int _dormantCacheExpire;
-        private readonly string _cachePath;// = Path.GetFullPath(@"..\..\_crow\CacheCrow");
-        private readonly string _cacheDirectoryPath;// = Path.GetFullPath(@"..\..\_crow");
+        private readonly string _cachePath;
+        private readonly string _cacheDirectoryPath;
         private static ConcurrentDictionary<K, CacheData<V>> _cacheDic;
         private static ConcurrentDictionary<K, Timer> _timerDic;
         private static CacheCrow<K, V> _cache;
