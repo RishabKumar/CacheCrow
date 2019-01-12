@@ -53,28 +53,23 @@ namespace CacheCrow.Cache
         /// <summary>
         /// Returns instance of ICacheCrow if it has been initialized
         /// </summary>
-        public static ICacheCrow<K, V> GetCacheCrow { get { return _cache; } }
+        public static ICacheCrow<K, V> GetCacheCrow => _cache;
+
         /// <summary>
         /// Gets number of entries in Active CacheCrow
         /// </summary>
-        public int ActiveCount
-        {
-            get { return _cacheDic.Count; }
-        }
+        public int ActiveCount => _cacheDic.Count;
+
         /// <summary>
         /// Gets total number of entries in CacheCrow
         /// </summary>
-        public int Count
-        {
-            get { return ActiveCount + ReadBinary().Count; }
-        }
+        public int Count => ActiveCount + ReadBinary().Count;
+
         /// <summary>
         /// Gets a previously calculated total number of entries in CacheCrow. Note: Should be considered if realtime values are not required.
         /// </summary>
-        public int PreviousCount
-        {
-            get { return ActiveCount + _dormantCacheCount; }
-        }
+        public int PreviousCount => ActiveCount + _dormantCacheCount;
+
         /// <summary>
         /// Removes all entries from CacheCrow, including entries in dormant cache and raises EmptyCacheEvent.
         /// </summary> 
@@ -183,7 +178,7 @@ namespace CacheCrow.Cache
             return DeepLookUp(key);
         }
         /// <summary>
-        /// Removes the entry from Active CacheCrow corresponsing to the key.
+        /// Removes the entry from Active CacheCrow corresponding to the key.
         /// </summary>
         /// <param name="key">The key to corresponding value to remove</param>
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
@@ -200,15 +195,15 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
-                    EmptyCacheEvent(this, new EventArgs());
+                    EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
             }
             return i;
         }
         /// <summary>
-        /// Removes the entry from CacheCrow(Active+Dormant) corresponsing to the key.
+        /// Removes the entry from CacheCrow(Active+Dormant) corresponding to the key.
         /// </summary>
         /// <param name="key">The key to corresponding value to remove</param>
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
@@ -229,9 +224,9 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
-                    EmptyCacheEvent(this, new EventArgs());
+                    EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
             }
             else
@@ -258,12 +253,12 @@ namespace CacheCrow.Cache
             }
             else if ((dic = ReadBinary()) != null && dic.ContainsKey(key))
             {
-                var cachedata = dic[key];
-                cachedata.Frequency += 1;
-                dic[key] = cachedata;
+                var cacheData = dic[key];
+                cacheData.Frequency += 1;
+                dic[key] = cacheData;
                 WriteBinary(dic);
-                PerformLFUAndReplace(key, cachedata);
-                return cachedata.Data;
+                PerformLFUAndReplace(key, cacheData);
+                return cacheData.Data;
             }
             else
                 return default(V);
@@ -279,7 +274,7 @@ namespace CacheCrow.Cache
             {
                 return _cacheDic[key].Data;
             }
-            else return default(V);
+            return default(V);
         }
         /// <summary>
         /// Disposes and writes the entries in Active CacheCrow to Dormant CacheCrow.
@@ -343,16 +338,16 @@ namespace CacheCrow.Cache
         }
         private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 120000) : base()
         {
-            string appdirectory = string.Empty;
-            if (HttpRuntime.AppDomainAppId != null)
+            string appDirectory;
+            if (!string.IsNullOrEmpty(HttpRuntime.AppDomainAppId))
             {
-                appdirectory = HttpRuntime.AppDomainAppPath;
+                appDirectory = HttpRuntime.AppDomainAppPath;
             }
             else
             {
-                appdirectory = Path.GetFullPath(@"..\..\_crow");
+                appDirectory = Path.GetFullPath(@"..\..\_crow");
             }
-            _cacheDirectoryPath = appdirectory + "_crow";
+            _cacheDirectoryPath = appDirectory + "_crow";
             _cachePath = _cacheDirectoryPath + @"\CacheCrow";
             if (!Directory.Exists(_cacheDirectoryPath))
             {
@@ -434,24 +429,24 @@ namespace CacheCrow.Cache
             }
             return dic;
         }
-        private void Add(K item, CacheData<V> cachedata, bool force = true)
+        private void Add(K item, CacheData<V> cacheData, bool force = true)
         {
-            if (cachedata == null)
+            if (cacheData == null)
             {
                 return;
             }
-            Add(item, cachedata.Data, cachedata.Frequency, force);
+            Add(item, cacheData.Data, cacheData.Frequency, force);
         }
         private void Add(K item, V data, int frequency, bool force = true)
         {
             if (item != null && !string.IsNullOrWhiteSpace(item.ToString()))
             {
-                var cachedata = new CacheData<V>(data, frequency);
+                var cacheData = new CacheData<V>(data, frequency);
                 if (ActiveCount < _cacheSize)
                 {
-                    if (_cacheDic.TryAdd(item, cachedata))
+                    if (_cacheDic.TryAdd(item, cacheData))
                     {
-                        _cacheDic[item] = cachedata;
+                        _cacheDic[item] = cacheData;
                         Timer t;
                         _timerDic.TryRemove(item, out t);
                         var timer = new CacheTimer<K>(item, _activeCacheExpire);
@@ -459,12 +454,8 @@ namespace CacheCrow.Cache
                         timer.Start();
                         _timerDic.TryAdd(item, timer);
                         var dic = ReadBinary();
-                        dic.TryRemove(item, out cachedata);
+                        dic.TryRemove(item, out cacheData);
                         WriteBinary(dic);
-                        return;
-                    }
-                    else
-                    {
                         return;
                     }
                 }
@@ -474,13 +465,12 @@ namespace CacheCrow.Cache
                     {
                         return;
                     }
-                    if (PerformLFUAndReplace(item, cachedata) > -1)
+                    if (PerformLFUAndReplace(item, cacheData) > -1)
                     {
-                        return;
                     }
                     else
                     {
-                        WriteBinary(item, cachedata);
+                        WriteBinary(item, cacheData);
                     }
                 }
             }
@@ -516,15 +506,15 @@ namespace CacheCrow.Cache
             if (_cacheSize > _cacheDic.Count)
             {
                 var dic = ReadBinary();
-
                 var pair = dic.OrderByDescending(x => x.Value.Frequency).FirstOrDefault();
-                if (pair.Key != null && pair.Key.Equals(key) || value == null)
+                if (dic.Any() && pair.Key != null && pair.Key.Equals(key) || value == null)
                 {
                     dic.TryRemove(pair.Key, out i);
                     WriteBinary(dic);
                     return PerformLFUAndReplace(key, value);
                 }
-                else if (pair.Key != null && pair.Value.Frequency > value.Frequency)
+
+                if (dic.Any() && pair.Key != null && pair.Value.Frequency > value.Frequency)
                 {
                     Add(pair.Key, pair.Value);
                     dic.TryRemove(pair.Key, out i);
@@ -534,7 +524,7 @@ namespace CacheCrow.Cache
                 else
                 {
                     Add(key, value);
-                    if (pair.Key != null)
+                    if (dic.Any() && pair.Key != null)
                     {
                         PerformLFUAndReplace(pair.Key, pair.Value);
                     }
@@ -545,7 +535,7 @@ namespace CacheCrow.Cache
             else
             {
                 var pair = _cacheDic.OrderBy(x => x.Value.Frequency).FirstOrDefault();
-                if (pair.Value.Frequency < value.Frequency || pair.Value.Frequency < 2)
+                if (_cacheDic.Any() && pair.Value.Frequency < value.Frequency || pair.Value.Frequency < 2)
                 {
                     i = ActiveRemove(pair.Key);
                     if (i.Frequency > -1) // has been removed condition, add to new key to cache and add removed key to disk.
@@ -564,45 +554,105 @@ namespace CacheCrow.Cache
             }
             return i.Frequency;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        protected bool NewPerformLFUAndReplace(K key, CacheData<V> value)
+        {
+            CacheData<V> tmp = null;
+            bool updated = false;
+            int emptySlots = _cacheSize - _cacheDic.Count;
+            try
+            {
+                if (emptySlots > 0)
+                {
+                    var dic = ReadBinary();
+
+                    var orderedCacheData = dic.Where(x => x.Value.Frequency > value.Frequency).Take(emptySlots);
+                    foreach (var cacheData in orderedCacheData)
+                    {
+                        dic.TryRemove(cacheData.Key, out tmp);
+                        Add(cacheData.Key, cacheData.Value.Data);
+                        updated = true;
+                    }
+
+                    if (updated)
+                    {
+                        WriteBinary(dic);
+                    }
+                    else
+                    {
+                        Add(key, value);
+                        updated = true;
+                    }
+                }
+                else
+                {
+                    var dic = _cacheDic;
+                    var orderedCacheData = dic.Where(x => x.Value.Frequency < value.Frequency).Take(Math.Abs(emptySlots));
+                    var dormantDic = ReadBinary();
+                    dormantDic.AddOrUpdate(key, value, (x, y) => y);;
+                    foreach (var cacheData in orderedCacheData)
+                    {
+                        dormantDic.AddOrUpdate(cacheData.Key, cacheData.Value, (x,y)=>y);
+                        _cacheDic.TryRemove(cacheData.Key, out tmp);
+                        updated = true;
+                    }
+
+                    if (updated)
+                    {
+                        WriteBinary(dormantDic);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return updated;
+        }
+
         private bool DeepLookUp(K item)
         {
             Console.WriteLine("Performing Deep Lookup..");
             var dic = ReadBinary();
             if (dic.ContainsKey(item))
             {
-                var cachedata = dic[item];
-                cachedata.Frequency += 1;
-                cachedata.CreationDate = DateTime.Now;
-                dic[item] = cachedata;
+                var cacheData = dic[item];
+                cacheData.Frequency += 1;
+                cacheData.CreationDate = DateTime.Now;
+                dic[item] = cacheData;
                 WriteBinary(dic);
-                PerformLFUAndReplace(item, cachedata);
+                PerformLFUAndReplace(item, cacheData);
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
         private void Cleaner_Event(object sender, ElapsedEventArgs e)
         {
             System.Threading.Thread cleaner = new System.Threading.Thread(() => {
                 var dic = ReadBinary();
                 WriteBinary(dic);
-                if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
-                    EmptyCacheEvent(this, new EventArgs());
+                    EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
             });
             cleaner.Start();
         }
         private void Elapsed_Event(object sender, ElapsedEventArgs e)
         {
-            System.Threading.Thread cachecleaner = new System.Threading.Thread(() => {
+            System.Threading.Thread cacheCleaner = new System.Threading.Thread(() => {
                 CacheData<V> i = new CacheData<V>();
                 var cachetimer = (CacheTimer<K>)sender;
                 cachetimer.Elapsed -= new ElapsedEventHandler(Elapsed_Event);
                 cachetimer.Close();
-                _cacheDic.TryRemove(cachetimer.key, out i);
+                _cacheDic.TryRemove(cachetimer.Key, out i);
                 if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                 {
                     EmptyCacheEvent(this, new EventArgs());
@@ -613,7 +663,7 @@ namespace CacheCrow.Cache
                     PerformLFUAndReplace(pair.Key, pair.Value);
                 }
             });
-            cachecleaner.Start();
+            cacheCleaner.Start();
         }
     }
 }

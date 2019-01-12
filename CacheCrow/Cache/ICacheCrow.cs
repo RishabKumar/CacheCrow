@@ -52,13 +52,13 @@ namespace CacheCrow.Cache
         /// <returns>True if key is found, else false</returns>
         bool LookUp(K key);
         /// <summary>
-        /// Removes the entry from Active CacheCrow corresponsing to the key.
+        /// Removes the entry from Active CacheCrow corresponding to the key.
         /// </summary>
         /// <param name="key">The key to corresponding value to remove</param>
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
         CacheData<V> ActiveRemove(K key);
         /// <summary>
-        /// Removes the entry from CacheCrow(Active+Dormant) corresponsing to the key.
+        /// Removes the entry from CacheCrow(Active+Dormant) corresponding to the key.
         /// </summary>
         /// <param name="key">The key to corresponding value to remove</param>
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
