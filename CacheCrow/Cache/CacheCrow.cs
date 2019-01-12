@@ -465,7 +465,7 @@ namespace CacheCrow.Cache
                     {
                         return;
                     }
-                    if (PerformLFUAndReplace(item, cacheData) > -1)
+                    if (PerformLFUAndReplace(item, cacheData))
                     {
                     }
                     else
@@ -499,7 +499,8 @@ namespace CacheCrow.Cache
         /// Tries to replace value having key to Active CacheCrow or Dormant CacheCrow.
         /// </summary>
         /// <returns>Returns frequency of added/removed entry</returns>
-        protected int PerformLFUAndReplace(K key, CacheData<V> value)
+        [Obsolete]
+        protected int PerformLFUAndReplace_Deprecated(K key, CacheData<V> value)
         {
             CacheData<V> i = new CacheData<V>();
             i.Frequency = -1;
@@ -511,7 +512,7 @@ namespace CacheCrow.Cache
                 {
                     dic.TryRemove(pair.Key, out i);
                     WriteBinary(dic);
-                    return PerformLFUAndReplace(key, value);
+                    return PerformLFUAndReplace_Deprecated(key, value);
                 }
 
                 if (dic.Any() && pair.Key != null && pair.Value.Frequency > value.Frequency)
@@ -519,14 +520,14 @@ namespace CacheCrow.Cache
                     Add(pair.Key, pair.Value);
                     dic.TryRemove(pair.Key, out i);
                     WriteBinary(dic);
-                    return PerformLFUAndReplace(key, value);
+                    return PerformLFUAndReplace_Deprecated(key, value);
                 }
                 else
                 {
                     Add(key, value);
                     if (dic.Any() && pair.Key != null)
                     {
-                        PerformLFUAndReplace(pair.Key, pair.Value);
+                        PerformLFUAndReplace_Deprecated(pair.Key, pair.Value);
                     }
                     else
                         return -1;
@@ -560,7 +561,7 @@ namespace CacheCrow.Cache
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
-        protected bool NewPerformLFUAndReplace(K key, CacheData<V> value)
+        protected bool PerformLFUAndReplace(K key, CacheData<V> value)
         {
             CacheData<V> tmp = null;
             bool updated = false;
