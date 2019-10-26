@@ -22,6 +22,15 @@ namespace CacheCrow.Model
         /// </summary>
         public DateTime CreationDate;
         /// <summary>
+        /// Time at which the CacheData was modified.
+        /// </summary>
+        public DateTime ModifiedDate;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public Func<V> OnExpire { get; set; }
+        /// <summary>
         /// Initializes CacheData with data of type V
         /// </summary>
         /// <param name="data">User data</param>

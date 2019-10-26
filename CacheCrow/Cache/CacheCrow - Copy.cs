@@ -1,5 +1,4 @@
-﻿using CacheCrow.CacheProviders;
-using CacheCrow.Model;
+﻿using CacheCrow.Model;
 using CacheCrow.Timers;
 using System;
 using System.Collections.Concurrent;
@@ -27,12 +26,12 @@ namespace CacheCrow.Cache
         private readonly int _activeCacheExpire;
         private readonly int _dormantCacheExpire;
         private readonly string _cachePath;
+        private readonly string _cacheDirectoryPath;
         private static ConcurrentDictionary<K, CacheData<V>> _cacheDic;
         private static ConcurrentDictionary<K, Timer> _timerDic;
         private static CacheCrow<K, V> _cache;
         private static Timer _cleaner;
-        private static ISecondaryCacheProvider<K, V> _secondaryCacheProvider;
-        public int DormantCacheCount => _secondaryCacheProvider.Count;
+        private int _dormantCacheCount;
         private static System.Threading.Mutex mutex = new System.Threading.Mutex();
         /// <summary>
         /// Initializes CacheCrow, creates a directory '_crow' in root if not present.
@@ -47,15 +46,6 @@ namespace CacheCrow.Cache
             if (_cache == null)
             {
                 _cache = new CacheCrow<K, V>(size, activeCacheExpire, dormantCacheExpire, cleanerSnoozeTime);
-            }
-            _cache.LoadCache();
-            return _cache;
-        }
-        public static ICacheCrow<K, V> Initialize(ISecondaryCacheProvider<K, V> secondaryCacheProvider, int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 400000)
-        {
-            if (_cache == null)
-            {
-                _cache = new CacheCrow<K, V>(size, activeCacheExpire, dormantCacheExpire, cleanerSnoozeTime, secondaryCacheProvider);
             }
             _cache.LoadCache();
             return _cache;
@@ -78,7 +68,7 @@ namespace CacheCrow.Cache
         /// <summary>
         /// Gets a previously calculated total number of entries in CacheCrow. Note: Should be considered if realtime values are not required.
         /// </summary>
-        public int PreviousCount => ActiveCount + DormantCacheCount;
+        public int PreviousCount => ActiveCount + _dormantCacheCount;
 
         /// <summary>
         /// Removes all entries from CacheCrow, including entries in dormant cache and raises EmptyCacheEvent.
@@ -109,7 +99,10 @@ namespace CacheCrow.Cache
         /// <param name="UpdateOnExpire"></param>
         public void Add(K key, V data, Func<V> UpdateOnExpire)
         {
-            _secondaryCacheProvider.EnsureExists();
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             if (data != null)
             {
                 Add(key, data, 1, UpdateOnExpire);
@@ -123,7 +116,10 @@ namespace CacheCrow.Cache
         /// <returns>True if value was updated else false</returns>
         public bool Update(K key, V data)
         {
-            _secondaryCacheProvider.EnsureExists();
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             if (data != null)
             {
                 if (_cacheDic.ContainsKey(key))
@@ -203,7 +199,7 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (DormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
                     EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
@@ -217,7 +213,10 @@ namespace CacheCrow.Cache
         /// <returns>If removed then returns removed value as CacheData, else returns empty CacheData</returns>
         public CacheData<V> Remove(K key)
         {
-            _secondaryCacheProvider.EnsureExists();
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
+            }
             CacheData<V> i = new CacheData<V>();
             if (_cacheDic.ContainsKey(key) && (_timerDic.ContainsKey(key)))
             {
@@ -229,7 +228,7 @@ namespace CacheCrow.Cache
                 cacheTimer.Stop();
                 cacheTimer.Close();
                 cacheTimer.Dispose();
-                if (DormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
                     EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
@@ -239,10 +238,7 @@ namespace CacheCrow.Cache
                 var dic = ReadBinary();
                 if (dic.ContainsKey(key))
                 {
-                    if(dic.TryRemove(key, out i))
-                    {
-                        WriteBinary(dic);
-                    }
+                    dic.TryRemove(key, out i);
                 }
             }
             return i;
@@ -269,7 +265,7 @@ namespace CacheCrow.Cache
                 return cacheData.Data;
             }
             else
-                return default;
+                return default(V);
         }
         /// <summary>
         /// Lookups the key in Active CacheCrow, if found then increments the frequency. Note: LFU maybe performed and entries maybe swapped between Active and Dormant CacheCrow.
@@ -344,19 +340,36 @@ namespace CacheCrow.Cache
             }
             _cleaner.Start();
         }
-        private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 120000, ISecondaryCacheProvider<K, V> secondaryCacheProvider = null) : base()
+        private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int dormantCacheExpire = 500000, int cleanerSnoozeTime = 120000) : base()
         {
-            if (secondaryCacheProvider == null)
+            string appDirectory;
+            if (!string.IsNullOrEmpty(HttpRuntime.AppDomainAppId))
             {
-                secondaryCacheProvider = new DefaultCacheProvider<K, V>(dormantCacheExpire);
+                appDirectory = HttpRuntime.AppDomainAppPath;
+            }
+            else
+            {
+                appDirectory = Path.GetFullPath(@"..\..\_crow");
+            }
+            _cacheDirectoryPath = appDirectory + "_crow";
+            _cachePath = _cacheDirectoryPath + @"\CacheCrow";
+            if (!Directory.Exists(_cacheDirectoryPath))
+            {
+                CreateCacheDirectory();
             }
             _cacheSize = size;
             _dormantCacheExpire = dormantCacheExpire;
             _activeCacheExpire = activeCacheExpire;
+            _dormantCacheCount = -1;
             _cleaner = new Timer(cleanerSnoozeTime);
             _cleaner.Elapsed += new ElapsedEventHandler(Cleaner_Event);
         }
-        
+        private void CreateCacheDirectory()
+        {
+            Directory.CreateDirectory(_cacheDirectoryPath);
+            var ds = new DirectorySecurity(_cacheDirectoryPath, AccessControlSections.Access);
+            Directory.SetAccessControl(_cacheDirectoryPath, ds);
+        }
         private void WriteBinary(K item, CacheData<V> value)
         {
             if (value == null)
@@ -372,18 +385,47 @@ namespace CacheCrow.Cache
         private void WriteBinary(ConcurrentDictionary<K, CacheData<V>> dic)
         {
             mutex.WaitOne(733);
-            _secondaryCacheProvider.WriteCache(dic);
+            using (FileStream fs = new FileStream(_cachePath, FileMode.Create))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                bf.Serialize(fs, dic);
+            }
             mutex.ReleaseMutex();
         }
         private void WriteCache()
         {
             mutex.WaitOne(733);
-            _secondaryCacheProvider.WriteCache(_cacheDic);
+            using (FileStream fs = new FileStream(_cachePath, FileMode.Create))
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                bf.Serialize(fs, _cacheDic);
+            }
             mutex.ReleaseMutex();
         }
         private ConcurrentDictionary<K, CacheData<V>> ReadBinary()
         {
-            return _secondaryCacheProvider.ReadCache();
+            ConcurrentDictionary<K, CacheData<V>> dic;
+            try
+            {
+                mutex.WaitOne(1601);
+                using (FileStream fs = new FileStream(_cachePath, FileMode.Open))
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    dic = (ConcurrentDictionary<K, CacheData<V>>)bf.Deserialize(fs);
+                    dic = new ConcurrentDictionary<K, CacheData<V>>(dic.Where(x => DateTime.Now.Subtract(x.Value.CreationDate).TotalMilliseconds < _dormantCacheExpire));
+                    _dormantCacheCount = dic.Count();
+                }
+            }
+            catch
+            {
+                dic = new ConcurrentDictionary<K, CacheData<V>>();
+                _dormantCacheCount = dic.Count();
+            }
+            finally
+            {
+                mutex.ReleaseMutex();
+            }
+            return dic;
         }
         private void Add(K item, CacheData<V> cacheData, bool force = true)
         {
@@ -596,7 +638,7 @@ namespace CacheCrow.Cache
             {
                 var dic = ReadBinary();
                 WriteBinary(dic);
-                if (DormantCacheCount == 0 && ActiveCount == 0)
+                if (_dormantCacheCount == 0 && ActiveCount == 0)
                 {
                     EmptyCacheEvent?.Invoke(this, new EventArgs());
                 }
@@ -621,11 +663,11 @@ namespace CacheCrow.Cache
                     cachetimer.Elapsed -= new ElapsedEventHandler(Elapsed_Event);
                     cachetimer.Close();
                     _cacheDic.TryRemove(cachetimer.Key, out i);
-                    if (DormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
+                    if (_dormantCacheCount == 0 && ActiveCount == 0 && EmptyCacheEvent != null)
                     {
                         EmptyCacheEvent(this, new EventArgs());
                     }
-                    else if (DormantCacheCount != 0)
+                    else if (_dormantCacheCount != 0)
                     {
                         var pair = ReadBinary().OrderByDescending(x => x.Value.Frequency).FirstOrDefault();
                         PerformLFUAndReplace(pair.Key, pair.Value);

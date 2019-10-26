@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CacheProviders\BaseCacheProvider.cs" />
+    <Compile Include="CacheProviders\ISecondaryCacheProvider.cs" />
     <Compile Include="Cache\CacheCrow.cs" />
     <Compile Include="Cache\ICacheCrow.cs" />
     <Compile Include="Model\CacheData.cs" />

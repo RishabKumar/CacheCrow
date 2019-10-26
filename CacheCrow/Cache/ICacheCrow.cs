@@ -33,6 +33,13 @@ namespace CacheCrow.Cache
         /// <param name="data">Value</param>
         void Add(K key, V data);
         /// <summary>
+        /// Inputs entry in Active CacheCrow with an option to update the cache value on expiration. The timer is reset after updation.
+        /// </summary>
+        /// <param name="Key"></param>
+        /// <param name="data"></param>
+        /// <param name="UpdateOnExpire"></param>
+        void Add(K Key, V data, Func<V> UpdateOnExpire);
+        /// <summary>
         /// Searches the key in both Active and Dormant CacheCrow and if found then updates the value.
         /// </summary>
         /// <param name="key">Existing key</param>
