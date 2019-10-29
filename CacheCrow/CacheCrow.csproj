@@ -32,6 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
@@ -42,10 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CacheProviders\BaseCacheProvider.cs" />
-    <Compile Include="CacheProviders\ISecondaryCacheProvider.cs" />
+    <Compile Include="CacheProviders\SecondaryCacheProvider.cs" />
     <Compile Include="Cache\CacheCrow.cs" />
     <Compile Include="Cache\ICacheCrow.cs" />
+    <Compile Include="Cache\ISecondaryCache.cs" />
+    <Compile Include="Cache\DefaultSecondaryCache.cs" />
     <Compile Include="Model\CacheData.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Timers\CacheTimer.cs">

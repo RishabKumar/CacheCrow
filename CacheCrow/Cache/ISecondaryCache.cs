@@ -1,18 +1,21 @@
 ﻿using CacheCrow.Model;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace CacheCrow.CacheProviders
+namespace CacheCrow.Cache
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public interface ISecondaryCacheProvider<K, V> : IDisposable
+    public interface ISecondaryCache<K, V> : IDisposable
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        int Count { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        double CacheExpireInMilliseconds { get; }
+
         /// <summary>
         /// 
         /// </summary>
@@ -29,11 +32,6 @@ namespace CacheCrow.CacheProviders
         /// 
         /// </summary>
         void Clear();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        void Init();
 
         /// <summary>
         /// 
@@ -57,10 +55,6 @@ namespace CacheCrow.CacheProviders
         /// </summary>
         /// <returns></returns>
         bool LookUp();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        int Count { get; }
     }
 }
+
