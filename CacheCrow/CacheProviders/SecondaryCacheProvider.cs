@@ -36,7 +36,7 @@ namespace CacheCrow.CacheProviders
 
         private static NameValueCollection GetCacheSectionFromConfig()
         {
-            var section = (NameValueCollection)ConfigurationManager.GetSection("CacheCrow");
+            var section = (NameValueCollection)ConfigurationManager.GetSection("cacheCrow");
             return section;
         }
 

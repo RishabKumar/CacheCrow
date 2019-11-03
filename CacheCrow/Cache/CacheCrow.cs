@@ -28,7 +28,7 @@ namespace CacheCrow.Cache
         private static Timer _cleaner;
         private readonly ISecondaryCache<K, V> _secondaryCache;
         /// <summary>
-        /// Initializes CacheCrow, creates a directory '_crow' in root if not present.
+        /// Initializes CacheCrow using default secondary cache.
         /// </summary>
         /// <param name="size">Count of total entries in Active(in-memory) CacheCrow</param>
         /// <param name="activeCacheExpire">Milli-seconds before each entry in Active CacheCrow is expired</param>
@@ -44,6 +44,25 @@ namespace CacheCrow.Cache
             _cache.LoadCache();
             return _cache;
         }
+
+        /// <summary>
+        /// Initializes CacheCrow and uses secondaryCache as the dormant cache.
+        /// </summary>
+        /// <param name="size">Count of total entries in Active(in-memory) CacheCrow</param>
+        /// <param name="activeCacheExpire">Milli-seconds before each entry in Active CacheCrow is expired</param>
+        /// <param name="dormantCacheExpire">Milli-seconds before each entry in Dormant(disk) CacheCrow is expired</param>
+        /// <param name="cleanerSnoozeTime">Milli-seconds before Cleaner cleans Dormant CacheCrow. Note: Cleaner is called after every cleanersnoozetime milli-seconds</param>
+        /// <returns>Returns instance of ICacheCrow</returns>
+        public static ICacheCrow<K, V> Initialize(ISecondaryCache<K, V> secondaryCache, int size = 1000, int activeCacheExpire = 300000, int cleanerSnoozeTime = 400000)
+        {
+            if (_cache == null)
+            {
+                _cache = new CacheCrow<K, V>(size, activeCacheExpire, cleanerSnoozeTime, secondaryCache);
+            }
+            _cache.LoadCache();
+            return _cache;
+        }
+
         /// <summary>
         /// Returns instance of ICacheCrow if it has been initialized
         /// </summary>
@@ -169,12 +188,6 @@ namespace CacheCrow.Cache
             }
             return DeepLookUp(key);
         }
-
-        public ConcurrentDictionary<K, CacheData<V>> GetActiveCache()
-        {
-            return _cacheDic;
-        } 
-
         /// <summary>
         /// Removes the entry from Active CacheCrow corresponding to the key.
         /// </summary>
@@ -332,9 +345,13 @@ namespace CacheCrow.Cache
             }
             _cleaner.Start();
         }
-        private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int cleanerSnoozeTime = 120000) : base()
+        private CacheCrow(int size = 1000, int activeCacheExpire = 300000, int cleanerSnoozeTime = 120000, ISecondaryCache<K, V> secondaryCache = null) : base()
         {
-            if (_secondaryCache == null)
+            if(secondaryCache != null)
+            {
+                _secondaryCache = secondaryCache;
+            }
+            else if (_secondaryCache == null)
             {
                 _secondaryCache = SecondaryCacheProvider<K, V>.GetSecondaryCache();
             }

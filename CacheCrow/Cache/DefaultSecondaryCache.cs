@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.AccessControl;
-using System.Threading;
 using System.Web;
 
 namespace CacheCrow.Cache
@@ -42,12 +41,10 @@ namespace CacheCrow.Cache
 
         public void Clear()
         {
-            File.Delete(_cachePath);
-        }
-
-        public void Dispose()
-        {
-
+            if (IsAccessible())
+            {
+                File.Delete(_cachePath);
+            }
         }
 
         public ConcurrentDictionary<K, CacheData<V>> ReadCache()
@@ -112,7 +109,7 @@ namespace CacheCrow.Cache
 
         public bool IsEmpty()
         {
-            if (Exists())
+            if (IsAccessible())
             {
                 using (var fs = new FileStream(_cachePath, FileMode.Open))
                 {
@@ -151,7 +148,7 @@ namespace CacheCrow.Cache
             }
         }
 
-        public bool LookUp()
+        public CacheData<V> LookUp(K key)
         {
             throw new NotImplementedException();
         }
