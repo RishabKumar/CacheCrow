@@ -32,7 +32,6 @@ namespace CacheCrow.Cache
         /// </summary>
         /// <param name="size">Count of total entries in Active(in-memory) CacheCrow</param>
         /// <param name="activeCacheExpire">Milli-seconds before each entry in Active CacheCrow is expired</param>
-        /// <param name="dormantCacheExpire">Milli-seconds before each entry in Dormant(disk) CacheCrow is expired</param>
         /// <param name="cleanerSnoozeTime">Milli-seconds before Cleaner cleans Dormant CacheCrow. Note: Cleaner is called after every cleanersnoozetime milli-seconds</param>
         /// <returns>Returns instance of ICacheCrow</returns>
         public static ICacheCrow<K, V> Initialize(int size = 1000, int activeCacheExpire = 300000, int cleanerSnoozeTime = 400000)
@@ -48,9 +47,9 @@ namespace CacheCrow.Cache
         /// <summary>
         /// Initializes CacheCrow and uses secondaryCache as the dormant cache.
         /// </summary>
+        /// <param name="secondaryCache">Instance of ISecondaryCache></param>
         /// <param name="size">Count of total entries in Active(in-memory) CacheCrow</param>
         /// <param name="activeCacheExpire">Milli-seconds before each entry in Active CacheCrow is expired</param>
-        /// <param name="dormantCacheExpire">Milli-seconds before each entry in Dormant(disk) CacheCrow is expired</param>
         /// <param name="cleanerSnoozeTime">Milli-seconds before Cleaner cleans Dormant CacheCrow. Note: Cleaner is called after every cleanersnoozetime milli-seconds</param>
         /// <returns>Returns instance of ICacheCrow</returns>
         public static ICacheCrow<K, V> Initialize(ISecondaryCache<K, V> secondaryCache, int size = 1000, int activeCacheExpire = 300000, int cleanerSnoozeTime = 400000)
@@ -455,7 +454,7 @@ namespace CacheCrow.Cache
             }
             return i.Frequency;
         }
-        // <summary>
+        /// <summary>
         /// Tries to replace value having key to Active CacheCrow or Dormant CacheCrow.
         /// </summary>
         /// <returns>Returns frequency of added/removed entry</returns>

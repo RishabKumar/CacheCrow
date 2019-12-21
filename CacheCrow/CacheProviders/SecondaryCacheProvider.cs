@@ -5,12 +5,22 @@ using System.Configuration;
 
 namespace CacheCrow.CacheProviders
 {
+    /// <summary>
+    /// Cache provider for dormant cache. Reads config for custom providers. Default is DefaultSecondaryCache
+    /// </summary>
+    /// <typeparam name="K"></typeparam>
+    /// <typeparam name="V"></typeparam>
     public static class SecondaryCacheProvider<K, V>
     {
         private const string CacheKey = "SecondaryCache";
         private const string ExpireTimeKey = "SecondaryCacheExpireTime";
         private const double DefaultExpireInMilliseconds = 500000;
         private static ISecondaryCache<K, V> _secondaryCache;
+
+        /// <summary>
+        /// Gets the instance of SecondaryCache from either config or else returns DefaultSecondaryCache
+        /// </summary>
+        /// <returns></returns>
         public static ISecondaryCache<K, V> GetSecondaryCache()
         {
             if (_secondaryCache != null)
