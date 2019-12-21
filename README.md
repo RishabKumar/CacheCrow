@@ -1,7 +1,7 @@
 # CacheCrow
 CacheCrow is a simple key-value, LFU, time-based cache. It is thread safe and lightweight.
 
-### Version 1.1.0 is out!
+### Version 1.1.0 is out! [Download Package](https://www.nuget.org/packages/CacheCrow)
 Now a SecondaryCacheProvider is avaiable and using that a custom cache can be used to replace the default filesystem.
 Create a new class (let's call it RedisCustomCache) and inherit ISecondaryCache<K, V>. There are 2 ways to register this class.
 1. Add a configSection to app.config like below
