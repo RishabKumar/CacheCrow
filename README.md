@@ -1,6 +1,28 @@
 # CacheCrow
 CacheCrow is a simple key-value, LFU, time-based cache. It is thread safe and lightweight.
 
+### Version 1.1.0 is out!
+Now a SecondaryCacheProvider is avaiable and using that a custom cache can be used to replace the default filesystem.
+Create a new class (let's call it RedisCustomCache) and inherit ISecondaryCache<K, V>. There are 2 ways to register this class.
+1. Add a configSection to app.config like below
+```xml
+<configSections>
+  <section name="cacheCrow" type="System.Configuration.NameValueSectionHandler" />
+</configSections>
+<cacheCrow>
+  <add key="SecondaryCache" value="TestWebsite.Cache.RedisCustomCache`2, TestWebsite" />
+  <add key="SecondaryCacheExpireTime" value="500000" />
+</cacheCrow>
+```
+OR
+
+2. While initializing the cache
+```cs
+var redisCustomCache = new RedisCustomCache(CacheExpireInMilliseconds);
+ICacheCrow<string, string> cache = CacheCrow<string, string>.Initialize(redisCustomCache, 500, 100000, 200000);
+```
+**Refer to DefaultSecondaryCache on how to implement ISecondaryCache.**
+
 ### Technicality
 CacheCrow internally deploys 2 cache storage to maintain data. This helps maintain the performance of the cache.
 The 2 caches are:
@@ -12,7 +34,7 @@ The 2 caches are:
 As the name suggests, it is the currently active cache. It uses in-memory to store data entries. It has a limited size that is user defined. At initilization, the entries in dormant cache, having most lookup hits are loaded in active cache. As the time goes, data entries are expired, removed from active cache and new entries having most lookup hits are loaded in-memory from Dormant CacheCrow.
 
 #### Dormant CacheCrow
-Data entries that have least lookup hits resides in dormant cache. All data is stored on disk, in a file '\_crow\CacheCrow'. It has no limit on size and can grow upto total disk size. As data entries are in dormant cache, they cannot expire on their own. For removing expired entries 'Cleaner' is employed that is called every x milli-seconds and its value is only configurable at initialization time.
+Data entries that have least lookup hits resides in dormant cache. All data is stored on disk by default (can be changed with SecondaryCacheProvider), in a file '\_crow\CacheCrow'. It has no limit on size and can grow upto total disk size. As data entries are in dormant cache, they cannot expire on their own. For removing expired entries 'Cleaner' is employed that is called every x milli-seconds and its value is only configurable at initialization time.
 
 #### Add Remove data.
 Data addition can takes place in 3 conditions:
